@@ -1,7 +1,11 @@
 # Set the output encoding to UTF-8
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# Define your PowerShell code
+# Check if pwsh.exe is installed
+$pwshPath = Get-Command pwsh -ErrorAction SilentlyContinue
+
+if ($pwshPath) {
+    # Define your PowerShell code
 $scriptCode = @'
 
 # Output an initialization message
@@ -67,21 +71,31 @@ else {
     if ($installChoice -eq 'A') {
         Write-Output "Installing WinGet automatically..."
         # Auto-installation code here
-        $installerUrl = "https://github.com/microsoft/winget-cli/releases/download/v1.6.2561/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
-        $installerPath = "$env:TEMP\winget.appxbundle"
 
         try {
-            Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
-            Add-AppxPackage -Path $installerPath -ForceApplicationShutdown
-            Remove-Item $installerPath -Force
-            Write-Output "WinGet installed successfully!"
+			# Check if Scoop is installed
+			Write-Host " Checking the status of Scoop..."
+			$scoopDirectory = [System.IO.Path]::Combine($env:USERPROFILE, 'scoop')
+
+			if ((Test-Path $scoopDirectory) -and (Get-Command scoop -ErrorAction SilentlyContinue)) {
+			Write-Host "Scoop is already installed."
+			} else {
+			Write-Host "Scoop is not installed. Installing Scoop..."
+			Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+			Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+			Write-Output "scoop Installed Successfully"	
+			}
+			Write-Output "Installing WinGet via scoop..."			
+			scoop install winget
+			Write-Output "WinGet installed Successfully"
         }
+		
         catch {
             $errorLogMessage = @"
 Failed to install WinGet. Please follow the manual installation steps:
 
 1. Download the latest version of WinGet from the following link:
-$installerUrl
+https://github.com/microsoft/winget-cli/releases
 
 2. Locate the downloaded 'winget-cli-msixbundle.appxbundle' file.
 
@@ -397,3 +411,15 @@ $scriptCode | Out-File -FilePath $scriptPath -Encoding UTF8
 
 # Open Windows Terminal and execute the script
 Start-Process "wt" -ArgumentList "pwsh.exe -File `"$scriptPath`""
+
+} else {
+    Write-Host "PowerShell Core (pwsh.exe) is not installed."
+
+    # Display installation instructions
+    Write-Host "To install PowerShell Core, follow these steps:"
+    Write-Host "1. Visit the official PowerShell GitHub releases page: https://github.com/PowerShell/PowerShell/releases"
+    Write-Host "2. Download the latest stable release for your operating system (Windows, macOS, or Linux)."
+    Write-Host "3. Follow the installation instructions provided for your specific platform."
+
+   }
+
