@@ -19,7 +19,7 @@ This tool automates the process of updating installed applications using [WinGet
 ## Usage
 
 1. **Run the Executable:**
-   - Double-click the `Winget_Updater_v.1.0.0.exe` file.
+   - Double-click the `Winget_Updater_v.1.1.0.exe` file.
    - When prompted, click "Yes" to grant administrator privileges.
 
 2. **Follow Instructions:**
