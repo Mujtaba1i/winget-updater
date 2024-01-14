@@ -147,6 +147,16 @@ $startTime = Get-Date
 # Get the available upgrades
 $upgradeResult = winget upgrade -u
 
+# Check if there are no updates
+if ($upgradeResult -eq 'No installed package found matching input criteria.') {
+Write-Output "No updates available. You are up-to-date."
+Write-Output ""
+
+# Keep the PowerShell window open until Enter key is pressed
+Read-Host -Prompt "Press Enter to exit"
+exit
+}
+
 # Initialize an array to store software package upgrades
 $upgrades = @()
 
@@ -157,9 +167,10 @@ $isStartList = 0
 # Process each line of the upgrade result
 $upgradeResult | ForEach-Object -Process {
     # Skip irrelevant lines at the beginning of the output
-    if ($isStartList -lt 1 -and -not $_.StartsWith("Name") -or $_.StartsWith("---") -or $_.StartsWith("The following packages")) {
+    if ($isStartList -lt 1 -and -not $_.StartsWith("Name") -or $_.StartsWith("---") -or $_.StartsWith("The following packages") -or $_ -match '^\s*\d+\s+upgrades\s+available\.$') {
         return
     }
+
 
     # Extract relevant information for each software package
     if ($_.StartsWith("Name")) {
@@ -304,11 +315,13 @@ if ($confirmUpdate -eq 'Y' -or $confirmUpdateShow -eq 'Y') {
         }
         else {
 			# Run the winget upgrade command and capture the results
-			winget upgrade --include-unknown -u --id $_.Id --silent --accept-source-agreements | Tee-Object -Variable consoleOutput | Out-null
+			$consoleOutput = winget upgrade --include-unknown -u --id $_.Id --silent --accept-source-agreements 2>&1
 
 			# Select the last line from the captured output
-			$lastLine = $consoleOutput -split "`n" | Select-Object -Last 2			
-            # Failed upgrade
+			$lastLines = $consoleOutput -split "`n" | Select-Object -Last 4	
+			$lastLine = $lastLines -join '' -replace '[{}\s,\\\/]+', ' ' -replace '^-', ''	-replace ' - ', ''	
+            
+			# Failed upgrade
             $failedDataUsed = 0
 
             # Get network statistics after the upgrade
@@ -378,16 +391,13 @@ Total Duration: $($totalDuration.ToString("hh\:mm\:ss\.ff"))
 Data Used for Winget: $($dataUsedDuringUpgrade.ToString("F5")) MB
 Total Data Used: $($dataUsed.ToString("F5")) MB
 
-Permanently skipped apps:
-$($skipUpdate -join "`r`n")
-
 Temporarily Skipped apps:
 $($tempSkipApps -join "`r`n")
 
 Updated Apps:
 $($individualUpgrades | Select-Object @{Name='Name'; Expression={$_.Name + "  "}},  @{Name='Id'; Expression={$_.Id + "  "}}, @{Name='DataUsed'; Expression={$_.DataUsed.ToString("F5") + " MB  "}}, @{Name='Duration'; Expression={$_.Duration.ToString("hh\:mm\:ss\.ff") + "  "}}| Format-Table -AutoSize | Out-String -Width ([int]::MaxValue))
 
-Failed or Skipped Apps:
+Update Failed:
 $($failedOrSkippedApps | Select-Object @{Name='Name'; Expression={$_.Name + "  "}},  @{Name='Id'; Expression={$_.Id + "  "}}, @{Name='DataUsed'; Expression={$_.DataUsed.ToString("F5") + " MB  "}}, @{Name='Duration'; Expression={$_.Duration.ToString("hh\:mm\:ss\.ff") + "  "}}, @{Name='Error'; Expression={$_.Error -replace '{(.*?)}', '$1'}}| Format-Table -AutoSize | Out-String -Width ([int]::MaxValue))
 
 "@
