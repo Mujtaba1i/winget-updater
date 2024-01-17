@@ -398,7 +398,7 @@ Updated Apps:
 $($individualUpgrades | Select-Object @{Name='Name'; Expression={$_.Name + "  "}},  @{Name='Id'; Expression={$_.Id + "  "}}, @{Name='DataUsed'; Expression={$_.DataUsed.ToString("F5") + " MB  "}}, @{Name='Duration'; Expression={$_.Duration.ToString("hh\:mm\:ss\.ff") + "  "}}| Format-Table -AutoSize | Out-String -Width ([int]::MaxValue))
 
 Update Failed:
-$($failedOrSkippedApps | Select-Object @{Name='Name'; Expression={$_.Name + "  "}},  @{Name='Id'; Expression={$_.Id + "  "}}, @{Name='DataUsed'; Expression={$_.DataUsed.ToString("F5") + " MB  "}}, @{Name='Duration'; Expression={$_.Duration.ToString("hh\:mm\:ss\.ff") + "  "}}, @{Name='Error'; Expression={$_.Error -replace '{(.*?)}', '$1'}}| Format-Table -AutoSize | Out-String -Width ([int]::MaxValue))
+$($failedOrSkippedApps | Select-Object @{Name='Name'; Expression={$_.Name + "  "}},  @{Name='Id'; Expression={$_.Id + "  "}}, @{Name='DataUsed'; Expression={$_.DataUsed.ToString("F5") + " MB  "}}, @{Name='Duration'; Expression={$_.Duration.ToString("hh\:mm\:ss\.ff") + "  "}}, @{Name='Error'; Expression={$_.Error -replace '{(.*?)}', '$1'}}| Format-Table -AutoSize | Out-String -Width 2000)
 
 "@
         # Write the log content to the log file
@@ -419,8 +419,24 @@ exit
 $scriptPath = [System.IO.Path]::Combine($env:TEMP, "TemporaryScript.ps1")
 $scriptCode | Out-File -FilePath $scriptPath -Encoding UTF8
 
-# Open Windows Terminal and execute the script
-Start-Process "wt" -ArgumentList "pwsh.exe -File `"$scriptPath`""
+# Check if 'wt' is available
+if (Get-Command wt -ErrorAction SilentlyContinue) {
+    # 'wt' is available, open Windows Terminal and execute the script
+    Start-Process "wt" -ArgumentList "pwsh.exe -File `"$scriptPath`""
+	
+	# Remove the temporary script file
+	Start-Sleep -Seconds 1
+	Remove-Item -Path $scriptPath -Force
+}
+else {
+    # 'wt' is not available, display an error message with instructions
+    Write-Host "Error: 'wt' (Windows Terminal) is not installed."
+    Write-Host "Please download and install Windows Terminal from: https://aka.ms/terminal"
+	# Keep the PowerShell window open until Enter key is pressed
+	Read-Host -Prompt "Press Enter to exit"
+	exit
+}
+
 
 } else {
     Write-Host "PowerShell Core (pwsh.exe) is not installed."
@@ -430,6 +446,8 @@ Start-Process "wt" -ArgumentList "pwsh.exe -File `"$scriptPath`""
     Write-Host "1. Visit the official PowerShell GitHub releases page: https://github.com/PowerShell/PowerShell/releases"
     Write-Host "2. Download the latest stable release for your operating system (Windows, macOS, or Linux)."
     Write-Host "3. Follow the installation instructions provided for your specific platform."
-
+	# Keep the PowerShell window open until Enter key is pressed
+	Read-Host -Prompt "Press Enter to exit"
+	exit
    }
 
