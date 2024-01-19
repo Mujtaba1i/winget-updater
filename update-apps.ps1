@@ -11,6 +11,9 @@ $scriptCode = @'
 # Output an initialization message
 Write-Output "Initializing ...."
 
+# Set the temp script Path
+$scriptPath = [System.IO.Path]::Combine($env:TEMP, "TemporaryScript.ps1")
+
 # Set the output encoding to UTF-8
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
@@ -411,6 +414,8 @@ $($failedOrSkippedApps | Select-Object @{Name='Name'; Expression={$_.Name + "  "
 
 # Keep the PowerShell window open until Enter key is pressed
 Read-Host -Prompt "Press Enter to exit"
+# Remove the temporary script file
+Remove-Item -Path $scriptPath -Force	
 exit
 
 '@
@@ -424,9 +429,6 @@ if (Get-Command wt -ErrorAction SilentlyContinue) {
     # 'wt' is available, open Windows Terminal and execute the script
     Start-Process "wt" -ArgumentList "pwsh.exe -File `"$scriptPath`""
 	
-	# Remove the temporary script file
-	Start-Sleep -Seconds 1
-	Remove-Item -Path $scriptPath -Force
 }
 else {
     # 'wt' is not available, display an error message with instructions
